@@ -7,19 +7,123 @@ output:
 
 
 ## Loading and preprocessing the data
-
+Load the packages for processing and plotting data.
+Read the data and transform the date format into "Date" class for later analyses.
+```{r, message=FALSE}
+library(lubridate)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+unzip(zipfile = "activity.zip")
+df <- read.csv("activity.csv", header = TRUE) %>%
+      tbl_df %>%
+      mutate(date = ymd(date))
+```
 
 
 ## What is mean total number of steps taken per day?
+Calculate the mean and median number of steps taken per day, omitting the missing data.
+```{r, results='hide'}
+stepDay <- df %>%
+      group_by(date) %>%
+      na.omit %>%
+      summarise(mean = round(mean(steps, na.rm = TRUE), 2), 
+                median = median(steps, na.rm = TRUE))
+```
 
+
+1. Make a histogram of the total number of steps taken each day
+```{r}
+res <- hist(stepDay$mean, plot = FALSE)
+lim <- round(range(res$counts), -1)
+hist(stepDay$mean, xlab = "", main = "Total Number of Steps Taken Each Day", ylim = lim)  ## get the range of counts by 
+```
+
+
+2. Calculate and report the **mean** and **median** total number of steps taken per day
+```{r}
+kable(stepDay, format = "html")
+```
 
 
 ## What is the average daily activity pattern?
+Calcuate the average number of steps taken by intervals.
+```{r, results='hide'}
+times <- df %>%
+      group_by(interval) %>%
+      summarise(ave = round(mean(steps, na.rm = TRUE), 2))
+```
 
+
+1. Make a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+```{r}
+plot(times$ave ~ times$interval, type = "l", xlab = "Interval", ylab = "Average Number of Steps Taken")
+```
+
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+times[times$ave == max(times$ave),]$interval
+```
 
 
 ## Imputing missing values
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with `NA`s)
+```{r}
+sum(is.na(df))
+```
 
 
+2. Filling in the missing values in the dataset by using the mean for that 5-minute interval.
+
+```{r}
+repna.df <- df %>%
+      group_by(interval) %>%
+      mutate(steps = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps))
+```
+
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+newDf <- repna.df %>%
+      ungroup 
+newstepDay <- newDf %>%
+      group_by(date) %>%
+      summarise(mean = round(mean(steps), 2) , median = round(median(steps), 2))
+```
+
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the **mean** and **median** total number of steps taken per day. 
+```{r}
+hist(newstepDay$mean, xlab = "", main = "Total Number of Steps Taken Each Day", sub = "Imputing Missing Data")
+```
+
+
+```{r}
+kable(newstepDay, format = "html")
+```
+
+
+##### The new table shows a different picture from the previous estimation, especially the median values from imputing values are higher than other observations.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+1. Create a new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{r}
+weekend <- c("Saturday", "Sunday")
+weekDf <- newDf %>%
+      mutate(day = factor(weekdays(date) %in% weekend, labels = c("weekday", "weekend")))
+```
+
+2. Make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using **simulated data**:
+```{r}
+weeks <- weekDf %>%
+      group_by(day, interval) %>%
+      summarise(ave = round(mean(steps, na.rm = TRUE), 2))
+
+ggplot(data = weeks, aes(interval, ave)) +
+      geom_line() +
+      facet_grid(day ~ .) +
+      xlab("Interval") +
+      ylab("Average Number of Steps Taken") 
+```
