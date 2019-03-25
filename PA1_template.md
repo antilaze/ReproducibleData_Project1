@@ -399,7 +399,7 @@ newstepDay <- newDf %>%
 hist(newstepDay$mean, xlab = "", main = "Total Number of Steps Taken Each Day", sub = "Imputing Missing Data")
 ```
 
-![](PA1_template_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](PA1_template_figure/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 
 
